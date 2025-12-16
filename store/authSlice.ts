@@ -6,6 +6,7 @@ interface AuthState {
   user: {
     email?: string;
     name?: string;
+    role?: "admin" | "manager" | "staff";
   } | null;
 }
 
@@ -25,6 +26,9 @@ const authSlice = createSlice({
       state.user = action.payload.user || null;
       if (typeof window !== 'undefined') {
         localStorage.setItem('krix_token', action.payload.token);
+        if (action.payload.user) {
+          localStorage.setItem('krix_user', JSON.stringify(action.payload.user));
+        }
       }
     },
     logout: (state) => {
@@ -33,14 +37,23 @@ const authSlice = createSlice({
       state.user = null;
       if (typeof window !== 'undefined') {
         localStorage.removeItem('krix_token');
+        localStorage.removeItem('krix_user');
       }
     },
     restoreAuth: (state) => {
       if (typeof window !== 'undefined') {
         const token = localStorage.getItem('krix_token');
+        const userStr = localStorage.getItem('krix_user');
         if (token) {
           state.token = token;
           state.isAuthenticated = true;
+          if (userStr) {
+            try {
+              state.user = JSON.parse(userStr);
+            } catch (e) {
+              state.user = null;
+            }
+          }
         }
       }
     },
