@@ -39,32 +39,41 @@ export default function LoginPage() {
   //   }
   // };
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError(null);
-  setLoading(true);
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
 
-  try {
-    // ✅ DEMO LOGIN CHECK
-    if (email === "admin@demo.com" && password === "password") {
-      dispatch(
-        setCredentials({
-          token: "demo-token",
-          user: { email },
-        })
-      );
+    try {
+      // Import authorized users
+      const { validateUser } = await import("@/lib/authorizedUsers");
+      
+      // Validate user credentials
+      const user = validateUser(email, password);
+      
+      if (user) {
+        // User is authorized - generate token and login
+        dispatch(
+          setCredentials({
+            token: `token-${Date.now()}`,
+            user: { 
+              email: user.email, 
+              name: user.name,
+              role: user.role 
+            },
+          })
+        );
+        router.push("/dashboard");
+        return;
+      }
 
-      router.push("/dashboard");
-      return;
+      // Invalid credentials
+      setError("Invalid email or password. Please check your credentials.");
+    } catch (err: any) {
+      setError("Login failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    // ❌ INVALID DEMO CREDENTIALS
-    setError("Invalid demo credentials");
-  } catch (err: any) {
-    setError("Login failed");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
   return (
     <> <Navbar/>
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-100 to-slate-50">
@@ -150,10 +159,21 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-            <p className="text-sm text-slate-600 text-center mb-2">Demo Credentials:</p>
-            <p className="text-sm font-mono text-center text-slate-900">
-              admin@demo.com / password
-            </p>
+            <p className="text-sm font-semibold text-slate-700 text-center mb-3">Test Credentials:</p>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-600">Admin:</span>
+                <span className="font-mono text-slate-900">admin@krixflow.com / admin123</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-600">Manager:</span>
+                <span className="font-mono text-slate-900">manager@krixflow.com / manager123</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-600">Demo:</span>
+                <span className="font-mono text-slate-900">demo@krixflow.com / demo123</span>
+              </div>
+            </div>
           </div>
         </div>
       </motion.div>
