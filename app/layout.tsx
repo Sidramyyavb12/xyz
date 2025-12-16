@@ -1,11 +1,11 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import Navbar from "@/components/Navbar";
-import Sidebar from "@/components/Sidebar";
+import Providers from "@/components/Providers";
+import ConditionalLayout from "@/components/ConditionalLayout";
 
 export const metadata: Metadata = {
   title: "KrixFlow Inventory",
-  description: "Inventory management frontend for hardware shops",
+  description: "Modern inventory management system for hardware businesses",
 };
 
 export default function RootLayout({
@@ -15,14 +15,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-slate-50 min-h-screen text-slate-900">
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <div className="flex-1 flex flex-col">
-            <Navbar />
-            <main className="flex-1 p-4 md:p-6 bg-slate-50">{children}</main>
-          </div>
-        </div>
+      <body className="bg-slate-50 min-h-screen text-slate-900 antialiased">
+        <Providers>
+          <ConditionalLayout>{children}</ConditionalLayout>
+        </Providers>
       </body>
     </html>
   );

@@ -1,12 +1,14 @@
 "use client";
 
 import PieChartContainer from "@/components/PieChartContainer";
+import BarChartContainer from "@/components/BarChartContainer";
 
 export default function ReportsPage() {
   return (
-    <div>
-      <h1 className="text-xl font-semibold mb-4">Reports</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Reports</h1>
       <PieChartContainer />
+      <BarChartContainer />
     </div>
   );
 }
