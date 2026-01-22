@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowLeft, Lock, Mail } from "lucide-react";
-import { login as apiLogin } from "@/app/api/auth";
+import { authAPI } from "@/lib/api/auth";
 import { useAppDispatch } from "@/store/hooks";
-import { setCredentials } from "@/store/authSlice";
+import { setCredentials, updateUser } from "@/store/authSlice";
+import { storeAuthData, handlePostAuthRouting } from "@/lib/authUtils";
 import Navbar from "@/components/Navbar";
 
 export default function LoginPage() {
@@ -18,58 +19,43 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setError(null);
-  //   setLoading(true);
-  //   try {
-  //     const res = await apiLogin({ email, password });
-  //     // expected response shape: { success: boolean, token?: string, message?: string }
-  //     if (res?.success && res.token) {
-  //       dispatch(setCredentials({ token: res.token, user: { email } }));
-  //       // redirect to dashboard
-  //       router.push("/dashboard");
-  //     } else {
-  //       setError(res?.message || "Invalid credentials");
-  //     }
-  //   } catch (err: any) {
-  //     setError(err?.message || "Login failed");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
-      // Import authorized users
-      const { validateUser } = await import("@/lib/authorizedUsers");
-      
-      // Validate user credentials
-      const user = validateUser(email, password);
-      
-      if (user) {
-        // User is authorized - generate token and login
-        dispatch(
-          setCredentials({
-            token: `token-${Date.now()}`,
-            user: { 
-              email: user.email, 
-              name: user.name,
-              role: user.role 
-            },
-          })
-        );
-        router.push("/dashboard");
-        return;
-      }
+      // Step 1: Login user
+      const loginResponse = await authAPI.login({ email, password });
 
-      // Invalid credentials
-      setError("Invalid email or password. Please check your credentials.");
+      // Step 2: Store tokens
+      const { token, refreshToken, user } = loginResponse;
+      storeAuthData(token, refreshToken, user);
+      dispatch(
+        setCredentials({
+          accessToken: token,
+          refreshToken: refreshToken,
+          user: user,
+        })
+      );
+
+      // Step 3: Call /api/users/me to get complete user details
+      const userMe = await authAPI.getUserMe();
+      
+      // Update user in store with complete details
+      dispatch(updateUser(userMe));
+      storeAuthData(token, refreshToken, userMe);
+
+      // Step 4: Handle routing based on role and profile status
+      const redirectPath = await handlePostAuthRouting(userMe);
+      router.push(redirectPath);
     } catch (err: any) {
-      setError("Login failed. Please try again.");
+      console.error("Login error:", err);
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Login failed. Please check your credentials."
+      );
     } finally {
       setLoading(false);
     }
@@ -159,21 +145,15 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-            <p className="text-sm font-semibold text-slate-700 text-center mb-3">Test Credentials:</p>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600">Admin:</span>
-                <span className="font-mono text-slate-900">admin@krixflow.com / admin123</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600">Manager:</span>
-                <span className="font-mono text-slate-900">manager@krixflow.com / manager123</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-600">Demo:</span>
-                <span className="font-mono text-slate-900">demo@krixflow.com / demo123</span>
-              </div>
-            </div>
+            <p className="text-sm font-semibold text-slate-700 text-center mb-3">
+              Don't have an account?
+            </p>
+            <Link
+              href="/signup"
+              className="block text-center px-4 py-2 bg-white border border-slate-300 rounded-lg font-medium text-slate-700 hover:bg-slate-50 transition-all"
+            >
+              Create Account
+            </Link>
           </div>
         </div>
       </motion.div>
